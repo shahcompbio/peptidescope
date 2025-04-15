@@ -17,7 +17,7 @@
  }
 // convert to gtf to bed file
  process GTF2BED {
-    tag "GTF2BED"
+    tag "process_low"
     container "quay.io/biocontainers/transdecoder:5.7.1--pl5321hdfd78af_0"
 
     input:
@@ -33,7 +33,7 @@
  }
 // convert the predictions to a genome based bed file as well
  process GTF2GFF3 {
-    tag "GTF2GFF3"
+    tag "process_low"
     container "quay.io/biocontainers/transdecoder:5.7.1--pl5321hdfd78af_0"
 
     input:
@@ -49,7 +49,7 @@
  }
 // generate genome coordinate based CDS annotation
  process GENOME_ALIGNED_GFF3 {
-    tag "GENOMEGFF3"
+    tag "process_low"
     container "quay.io/biocontainers/transdecoder:5.7.1--pl5321hdfd78af_0"
 
     input:
@@ -68,7 +68,7 @@
  }
 // generate bed file
 process GFF3_TO_BED{
-   tag "GFF3_TO_BED"
+   tag "process_low"
    publishDir "${params.outdir}/cds_bed/${params.sample_id}"
    container "quay.io/biocontainers/transdecoder:5.7.1--pl5321hdfd78af_0"
 

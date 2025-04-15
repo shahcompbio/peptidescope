@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com///nextflow_schema.json",
+  "title": " pipeline parameters",
+  "description": "",
+  "type": "object",
+  "$defs": {
+    "input_output_options": {
+      "title": "Input/output options",
+      "type": "object",
+      "fa_icon": "fas fa-terminal",
+      "description": "Define where the pipeline should find input data and save output data.",
+      "required": ["outdir"],
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "output directory for results",
+          "fa_icon": "fas fa-folder-open"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "$ref": "#/$defs/input_output_options"
+    }
+  ],
+  "properties": {
+    "transcript_gtf": {
+      "type": "string",
+      "description": "sample transcriptome gtf"
+    },
+    "transdecoder_gff3": {
+      "type": "string",
+      "description": "CDS regions from transdecoder in transcriptome coordinate space"
+    },
+    "transcripts_fasta": {
+      "type": "string",
+      "description": "cDNA fasta for transcriptome from gffread"
+    },
+    "sample_id": {
+      "type": "string",
+      "description": "sample name"
+    }
+  },
+  "required": [
+    "transcript_gtf",
+    "transdecoder_gff3",
+    "transcripts_fasta",
+    "sample_id"
+  ]
+}
