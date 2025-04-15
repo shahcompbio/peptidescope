@@ -14,6 +14,7 @@
     GTF2GFF3(params.transcript_gtf)
     GENOME_ALIGNED_GFF3(GTF2GFF3.out, params.transdecoder_gff3, params.transcripts_fasta)
     GFF3_TO_BED(GENOME_ALIGNED_GFF3.out)
+    DUPS(GFF3_TO_BED.out)
  }
 // convert to gtf to bed file
  process GTF2BED {
