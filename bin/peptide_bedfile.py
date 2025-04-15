@@ -1,5 +1,4 @@
- #!/usr/bin/env python
-from tqdm import tqdm
+#!/usr/bin/env python
 import numpy as np
 import pandas as pd
 import os
@@ -47,7 +46,7 @@ enzymes = ["argc", "aspn", "gluc",
            "in-house_chymotrypsin", "lysc", "lysn", 
            "proalanase", "trypsin"]
 detected_df1 = pd.DataFrame()
-for i in tqdm(np.arange(0, len(enzymes))):
+for i in np.arange(0, len(enzymes)):
     enzyme = enzymes[i]
     fa_path = os.path.join(archive, enzyme + "_diaPASEF_groupFDR", "peptide.tsv")
     temp = pd.read_csv(fa_path, sep="\t")
