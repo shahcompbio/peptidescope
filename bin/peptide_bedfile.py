@@ -5,7 +5,7 @@ import os
 import sys
 
 #paths
-
+#TODO: there is an occasional bug where the peptides appear to be one AA short; need to have code review
 archive = sys.argv[1]
 tx_bed_path = sys.argv[2]
 pep_bed_path = sys.argv[3]
