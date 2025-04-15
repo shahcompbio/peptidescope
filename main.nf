@@ -35,6 +35,7 @@
  process GTF2GFF3 {
     tag "GTF2GFF3"
     container "quay.io/biocontainers/transdecoder:5.7.1--pl5321hdfd78af_0"
+
     input:
     path transcript_gtf
 
@@ -50,6 +51,7 @@
  process GENOME_ALIGNED_GFF3 {
     tag "GENOMEGFF3"
     container "quay.io/biocontainers/transdecoder:5.7.1--pl5321hdfd78af_0"
+
     input:
     path transcripts_gff3
     path transdecoder_gff3
@@ -69,6 +71,7 @@ process GFF3_TO_BED{
    tag "GFF3_TO_BED"
    publishDir "${params.outdir}/cds_bed/${params.sample_id}"
    container "quay.io/biocontainers/transdecoder:5.7.1--pl5321hdfd78af_0"
+
    input:
    path genome_gff3
 
@@ -76,9 +79,9 @@ process GFF3_TO_BED{
    path "transcripts.fasta.transdecoder.genome.bed"
 
    script:
-   """"
+   """
    gff3_file_to_bed.pl ${genome_gff3} > transcripts.fasta.transdecoder.genome.bed
-   """"
+   """
 }
 
 
