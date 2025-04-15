@@ -137,7 +137,7 @@ with open("transcripts.fasta.transdecoder.genome.bed", "w") as modified:
 
     script:
     """
-    peptide_bedfile.py ${fragpipe_dir} ${transcripts_genome_bed} peptides.bed
+    python peptide_bedfile.py ${fragpipe_dir} ${transcripts_genome_bed} peptides.bed
     """
  }
 
