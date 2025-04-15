@@ -42,12 +42,17 @@
     "sample_id": {
       "type": "string",
       "description": "sample name"
+    },
+    "fragpipe_dir": {
+      "type": "string",
+      "description": "fragpipe output directory containing subdirs for each enzyme"
     }
   },
   "required": [
     "transcript_gtf",
     "transdecoder_gff3",
     "transcripts_fasta",
-    "sample_id"
+    "sample_id",
+    "fragpipe_dir"
   ]
 }

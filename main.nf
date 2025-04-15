@@ -6,7 +6,8 @@
  params.transcript_gtf = "/data1/shahs3/users/preskaa/APS010.1_Archive/bambu_out/multiSample_NDR_0.1/detected_transcripts.gtf"
  params.transdecoder_gff3 = "/data1/shahs3/users/preskaa/APS010.1_Archive/transdecoder/NDR_0.1/transcripts.fa.transdecoder.gff3"
  params.transcripts_fasta = "/data1/shahs3/users/preskaa/APS010.1_Archive/gffread/NDR_0.1/transcripts.fa"
- params.outdir = "/data1/shahs3/users/preskaa/A673/data/APS010.1_PG3_v_Swissprot/transdecoder_ORF_viz" 
+ params.outdir = "/data1/shahs3/users/preskaa/A673/data/APS010.1_PG3_v_Swissprot/transdecoder_ORF_viz"
+ params.fragpipe_dir = "/data1/shahs3/users/preskaa/APS010.1_Archive/fragpipe/spike_in" 
  params.sample_id = "A673"
 
  workflow {
@@ -15,6 +16,7 @@
     GENOME_ALIGNED_GFF3(GTF2GFF3.out, params.transdecoder_gff3, params.transcripts_fasta)
     GFF3_TO_BED(GENOME_ALIGNED_GFF3.out)
     DUPS(GFF3_TO_BED.out)
+    PEPTIDE_BED(params.fragpipe_dir, DUPS.out)
  }
 // convert to gtf to bed file
  process GTF2BED {
@@ -86,7 +88,7 @@ process GFF3_TO_BED{
 // remove duplicate entries (this is because we stink at perl)
 process DUPS{
    tag "process_low"
-   publishDir "${params.outdir}/cds_bed/${params.sample_id}"
+   publishDir "${params.outdir}/visualization/${params.sample_id}"
    container "quay.io/preskaa/biopython:v250221"
 
    input:
@@ -119,5 +121,24 @@ with open("transcripts.fasta.transdecoder.genome.bed", "w") as modified:
 """
 
 }
+
+// generate bed file with peptides
+ process PEPTIDE_BED {
+    tag "process_low"
+    container "quay.io/preskaa/biopython:v250221"
+    publishDir "${params.outdir}/visualization/${params.sample_id}"
+
+    input:
+    path fragpipe_dir
+    path transcripts_genome_bed // transcriptome bed file in ref genome coordinates
+
+    output:
+    path "peptides.bed"
+
+    script:
+    """
+    peptide_bedfile.py ${fragpipe_dir} ${transcripts_genome_bed} peptides.bed
+    """
+ }
 
 
