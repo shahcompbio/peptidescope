@@ -109,7 +109,7 @@ tx_bed.to_csv("transcripts.fasta.transdecoder.genome.bed",
                header=False, 
                index=False)
 # edit tag line
-track_line = 'track name="detected transcripts" visibility=2 itemRgb="On"\n'
+track_line = 'track name="detected transcripts" visibility=2 itemRgb="On"\\n'
 
 with open("transcripts.fasta.transdecoder.genome.bed", "r") as original:
    data = original.read()
