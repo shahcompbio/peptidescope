@@ -26,7 +26,7 @@ def pep_ref_pos(ORF_start_idx, ORF_start, block_ends,
     # determine peptide start position in genomic coordinates
     block_size = block_ends[interval]-ORF_start
     bps = pep_pos
-    while bps > block_size:
+    while bps > block_size and interval + 1 < len(block_sizes):
         # subtract off cDNA from block
         bps = bps-block_size
         # jump to next block
