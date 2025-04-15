@@ -97,24 +97,26 @@ process DUPS{
 
    script:
    """
-   #!/usr/bin/env python
-   import sys
-   import pandas as pd
-   tx_bed = pd.read_csv("transcripts.bed", sep="\t", skiprows=1, names=col_names)
-   tx_bed = tx_bed.drop_duplicates()
-   tx_bed.to_csv("transcripts.fasta.transdecoder.genome.bed", 
-                  sep="\t", 
-                  header=False, 
-                  index=False)
-   # edit tag line
-   track_line = 'track name="detected transcripts" visibility=2 itemRgb="On"\n'
+#!/usr/bin/env python
+import pandas as pd
+col_names = ["chrom", "chromStart", "chromEnd", "name", 
+               "score", "strand", "thickStart", "thickEnd",
+               "itemRgb", "blockCount", "blockSizes", "blockStarts"]
+tx_bed = pd.read_csv("transcripts.bed", sep="\t", skiprows=1, names=col_names)
+tx_bed = tx_bed.drop_duplicates()
+tx_bed.to_csv("transcripts.fasta.transdecoder.genome.bed", 
+               sep="\t", 
+               header=False, 
+               index=False)
+# edit tag line
+track_line = 'track name="detected transcripts" visibility=2 itemRgb="On"\n'
 
-   with open("transcripts.fasta.transdecoder.genome.bed", "r") as original:
-      data = original.read()
+with open("transcripts.fasta.transdecoder.genome.bed", "r") as original:
+   data = original.read()
 
-   with open("transcripts.fasta.transdecoder.genome.bed", "w") as modified:
-      modified.write(track_line + data)
-   """
+with open("transcripts.fasta.transdecoder.genome.bed", "w") as modified:
+   modified.write(track_line + data)
+"""
 
 }
 
