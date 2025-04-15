@@ -2,7 +2,6 @@
 import numpy as np
 import pandas as pd
 import os
-from gtfparse import read_gtf
 import sys
 
 #paths
