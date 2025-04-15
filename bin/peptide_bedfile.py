@@ -35,10 +35,10 @@ def pep_ref_pos(ORF_start_idx, ORF_start, block_ends,
         block_size = block_sizes[interval]
     # set genomic peptide start position
     if ORF_start_idx == interval:
-        genomic_pepstart = bps+ORF_start
+        genomic_pep_pos = bps+ORF_start
     else:
-        genomic_pepstart = bps+block_starts[interval]
-    return genomic_pepstart
+        genomic_pep_pos = bps+block_starts[interval]
+    return genomic_pep_pos
 
 # load enzymes (will refactor later for general use)
 enzymes = ["argc", "aspn", "gluc", 
@@ -69,6 +69,8 @@ tx_bed = pd.read_csv(tx_bed_path, sep="\t", skiprows=1, names=col_names)
 tx_bed = tx_bed.drop_duplicates()
 ## write our peptide bedfile
 # group on protein ids
+# drop duplicates for peptides which detected by multiple enzymes
+unique_df = unique_df.drop_duplicates(subset=["Peptide", "Protein Start", "Protein End", "Protein"])
 protein_groups = unique_df.groupby(by="Protein")
 # initiate dataframe
 data = []
@@ -112,9 +114,9 @@ for protein, group in protein_groups:
     for _, row in group.iterrows():
         peplen = 3*(row["Peptide Length"])
         if bedrow["strand"] == "+":
-            # get peptide start and end
+            # get peptide start and end; correcting for differences in indexing
             pepstart = 3*(row["Protein Start"]-1)
-            pepend = 3*(row["Protein End"])
+            pepend = 3*(row["Protein End"]-1)
             # determine peptide start position in genomic coordinates
             genomic_pepstart = pep_ref_pos(start_interval, ORF_start, block_ends, 
                                            pepstart, block_sizes, block_starts)
@@ -145,8 +147,7 @@ for protein, group in protein_groups:
             'itemRgb': '0',
             'blockCount': bedrow["blockCount"],
             'blockSizes': bedrow['blockSizes'],
-            'blockStarts': bedrow['blockStarts'],
-            
+            'blockStarts': bedrow['blockStarts']
         })
         i += 1
 test_pep_bed = pd.DataFrame(data)
