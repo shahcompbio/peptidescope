@@ -69,7 +69,6 @@
 // generate bed file
 process GFF3_TO_BED{
    tag "process_low"
-   publishDir "${params.outdir}/cds_bed/${params.sample_id}"
    container "quay.io/biocontainers/transdecoder:5.7.1--pl5321hdfd78af_0"
 
    input:
@@ -82,6 +81,40 @@ process GFF3_TO_BED{
    """
    gff3_file_to_bed.pl ${genome_gff3} > transcripts.fasta.transdecoder.genome.bed
    """
+}
+// remove duplicate entries (this is because we stink at perl)
+process DUPS{
+   tag "process_low"
+   publishDir "${params.outdir}/cds_bed/${params.sample_id}"
+   container "quay.io/preskaa/biopython:v250221"
+
+   input:
+   path "transcripts.bed"
+
+   output:
+   path "transcripts.fasta.transdecoder.genome.bed"
+
+   script:
+   """
+   #!/usr/bin/env python
+   import sys
+   import pandas as pd
+   tx_bed = pd.read_csv("transcripts.bed", sep="\t", skiprows=1, names=col_names)
+   tx_bed = tx_bed.drop_duplicates()
+   tx_bed.to_csv("transcripts.fasta.transdecoder.genome.bed", 
+                  sep="\t", 
+                  header=False, 
+                  index=False)
+   # edit tag line
+   track_line = 'track name="detected transcripts" visibility=2 itemRgb="On"\n'
+
+   with open("transcripts.fasta.transdecoder.genome.bed", "r") as original:
+      data = original.read()
+
+   with open("transcripts.fasta.transdecoder.genome.bed", "w") as modified:
+      modified.write(track_line + data)
+   """
+
 }
 
 
