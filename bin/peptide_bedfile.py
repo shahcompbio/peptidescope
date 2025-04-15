@@ -76,7 +76,7 @@ data = []
 for protein, group in protein_groups:
     # fetch transcript info
     tx_id = protein
-    bedrow = tx_bed[tx_bed["name"].str.contains(tx_id)]
+    bedrow = tx_bed[tx_bed["name"].str.contains(f"{tx_id}.p")]
     if len(bedrow) < 1:
         print(f"no transcript match for {tx_id}")
         continue
