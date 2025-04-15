@@ -9,9 +9,8 @@ import sys
 #paths
 
 archive = sys.argv[1]
-gtfpath = "/data1/shahs3/users/preskaa/APS010.1_Archive/bambu_out/multiSample_NDR_0.1/detected_transcripts.gtf"
-tx_bed_path = "/data1/shahs3/users/preskaa/A673/data/APS010.1_PG3_v_Swissprot/transdecoder_ORF_viz/visualization/A673/transcripts.fasta.transdecoder.genome.bed"
-test_pep_bed_path = "/data1/shahs3/users/preskaa/A673/data/APS010.1_PG3_v_Swissprot/transdecoder_ORF_viz/visualization/A673/test_peptides.bed"
+tx_bed_path = sys.argv[2]
+pep_bed_path = sys.argv[3]
 
 # useful functions
 def pep_ref_pos(ORF_start_idx, ORF_start, block_ends, 
@@ -151,11 +150,11 @@ for protein, group in protein_groups:
         i += 1
 test_pep_bed = pd.DataFrame(data)
 # make our test bed file
-test_pep_bed.to_csv(test_pep_bed_path, sep="\t", header=False, index=False)
+test_pep_bed.to_csv(pep_bed_path, sep="\t", header=False, index=False)
 track_line = 'track name="unique peptides" description="detected peptides" visibility=2 itemRgb="On"\n'
 
-with open(test_pep_bed_path, "r") as original:
+with open(pep_bed_path, "r") as original:
     data = original.read()
 
-with open(test_pep_bed_path, "w") as modified:
+with open(pep_bed_path, "w") as modified:
     modified.write(track_line + data)
