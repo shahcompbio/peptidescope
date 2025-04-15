@@ -92,10 +92,10 @@ for protein, group in protein_groups:
     # get block ends in chromosomal coordinates
     block_ends = block_starts+np.array(block_sizes)
     # determine which block the ORF start is in
-    interval_idx = np.where((block_starts <= ORF_start) & (ORF_start < block_ends))[0]
+    interval_idx = np.where((block_starts <= ORF_start) & (ORF_start <= block_ends))[0]
     start_interval = interval_idx[0]
     # determine block in which ORF ends ...
-    end_idx = np.where((block_starts <= ORF_end) & (ORF_end < block_ends))[0]
+    end_idx = np.where((block_starts <= ORF_end) & (ORF_end <= block_ends))[0]
     end_interval = end_idx[0]
     # now get size of ORF in cDNA
     ORF_size = 0
