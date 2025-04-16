@@ -105,6 +105,7 @@ col_names = ["chrom", "chromStart", "chromEnd", "name",
                "score", "strand", "thickStart", "thickEnd",
                "itemRgb", "blockCount", "blockSizes", "blockStarts"]
 tx_bed = pd.read_csv("transcripts.bed", sep="\t", skiprows=1, names=col_names)
+tx_bed = tx_bed[tx_bed["name"].str.contains("ORF_type:complete")]
 tx_bed = tx_bed.drop_duplicates()
 tx_bed.to_csv("transcripts.fasta.transdecoder.genome.bed", 
                sep="\t", 
