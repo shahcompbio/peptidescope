@@ -12,7 +12,7 @@ pep_bed_path = sys.argv[3]
 
 # useful functions
 def pep_ref_pos(ORF_start_idx, ORF_start, block_ends, 
-                pep_pos, block_sizes, block_starts):
+                pep_pos, block_sizes, block_starts, ORF_end):
     """
     determine peptide genomic coordinates
     ORF_start_idx: index of exon in which ORF begins
@@ -26,7 +26,7 @@ def pep_ref_pos(ORF_start_idx, ORF_start, block_ends,
     # determine peptide start position in genomic coordinates
     block_size = block_ends[interval]-ORF_start
     bps = pep_pos
-    while bps > block_size and interval + 1 < len(block_sizes):
+    while bps >= block_size and interval + 1 < len(block_sizes):
         # subtract off cDNA from block
         bps = bps-block_size
         # jump to next block
@@ -36,9 +36,34 @@ def pep_ref_pos(ORF_start_idx, ORF_start, block_ends,
     # set genomic peptide start position
     if ORF_start_idx == interval:
         genomic_pep_pos = bps+ORF_start
+    # fresh outta peptides
+    elif bps == 0:
+        genomic_pep_pos = ORF_end
     else:
         genomic_pep_pos = bps+block_starts[interval]
+    assert genomic_pep_pos <= ORF_end, \
+        f"Peptide position {genomic_pep_pos} exceeds ORF end {ORF_end}"
     return genomic_pep_pos
+
+def calc_orf_size(block_sizes, start_interval, end_interval, 
+                  block_starts, block_ends, ORF_start, ORF_end):
+    """
+    compute ORF cDNA length
+    """
+    # check if ORF is in single block; will also catch single exons
+    if start_interval == end_interval:
+        ORF_size = ORF_end-ORF_start
+    else:
+        ORF_size = 0
+        for i in np.arange(start_interval, end_interval + 1):
+            if i == start_interval:
+                block_size = block_ends[i] - ORF_start
+            elif i == end_interval:
+                block_size = ORF_end - block_starts[i]
+            else:
+                block_size = block_sizes[i]
+            ORF_size += block_size
+    return ORF_size
 
 # load enzymes (will refactor later for general use)
 enzymes = ["argc", "aspn", "gluc", 
@@ -78,6 +103,7 @@ data = []
 for protein, group in protein_groups:
     # fetch transcript info
     tx_id = protein
+    print(f"{tx_id}")
     bedrow = tx_bed[tx_bed["name"].str.contains(f"{tx_id}.p")]
     if len(bedrow) < 1:
         print(f"no transcript match for {tx_id}")
@@ -86,6 +112,8 @@ for protein, group in protein_groups:
     bedrow = bedrow.squeeze()
     block_sizes = [int(x) for x in bedrow["blockSizes"].split(",")]
     block_starts = [int(x) for x in bedrow["blockStarts"].split(",")]
+    if tx_id == "BambuTx1105":
+        print("test tx!")
     ORF_start = bedrow["thickStart"]
     ORF_end = bedrow["thickEnd"]
     exon_count = bedrow["blockCount"]
@@ -100,15 +128,8 @@ for protein, group in protein_groups:
     end_idx = np.where((block_starts <= ORF_end) & (ORF_end <= block_ends))[0]
     end_interval = end_idx[0]
     # now get size of ORF in cDNA
-    ORF_size = 0
-    for i in np.arange(0, len(block_sizes)):
-        if i == start_interval:
-            block_size = block_ends[i] - ORF_start
-        elif i == end_interval:
-            block_size = ORF_end - block_starts[i]
-        else:
-            block_size = block_sizes[i]
-        ORF_size += block_size
+    ORF_size = calc_orf_size(block_sizes, start_interval, end_interval,
+                             block_starts, block_ends, ORF_start, ORF_end)
     i = 1
     # determine peptide positions
     for _, row in group.iterrows():
@@ -119,10 +140,10 @@ for protein, group in protein_groups:
             pepend = 3*(row["Protein End"]-1)
             # determine peptide start position in genomic coordinates
             genomic_pepstart = pep_ref_pos(start_interval, ORF_start, block_ends, 
-                                           pepstart, block_sizes, block_starts)
+                                           pepstart, block_sizes, block_starts, ORF_end)
             # determine peptide end position in genomic coordinates
             genomic_pepend = pep_ref_pos(start_interval, ORF_start, block_ends, 
-                                         pepend, block_sizes, block_starts)
+                                         pepend, block_sizes, block_starts, ORF_end)
         else:
             # negative strand
             # flip protein start end coordinates
@@ -130,11 +151,15 @@ for protein, group in protein_groups:
             pepend = ORF_size - 3*(row["Protein Start"]-1)
             # determine peptide start position in genomic coordinates
             genomic_pepstart = pep_ref_pos(start_interval, ORF_start, block_ends, 
-                                           pepstart, block_sizes, block_starts)
+                                           pepstart, block_sizes, block_starts, ORF_end)
             # determine peptide end position in genomic coordinates
             genomic_pepend = pep_ref_pos(start_interval, ORF_start, block_ends, 
-                                         pepend, block_sizes, block_starts)
-            # break
+                                         pepend, block_sizes, block_starts, ORF_end) 
+        # check that coordinates make sense
+        assert ORF_end >= genomic_pepend, \
+            f"peptide ends after ORF {genomic_pepend} > {ORF_end} for {tx_id}"
+        assert ORF_start <= genomic_pepstart, \
+            f"peptide starts before ORF {genomic_pepstart} < {ORF_start} for {tx_id}"
         data.append({
             'chrom':bedrow['chrom'],
             'chromStart':bedrow['chromStart'],
