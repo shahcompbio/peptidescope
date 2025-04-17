@@ -10,13 +10,72 @@
       "type": "object",
       "fa_icon": "fas fa-terminal",
       "description": "Define where the pipeline should find input data and save output data.",
-      "required": ["outdir"],
+      "required": [
+        "outdir",
+        "transcript_gtf",
+        "transdecoder_gff3",
+        "transcripts_fasta",
+        "sample_id",
+        "fragpipe_dir"
+      ],
       "properties": {
         "outdir": {
           "type": "string",
           "format": "directory-path",
           "description": "output directory for results",
           "fa_icon": "fas fa-folder-open"
+        },
+        "transcript_gtf": {
+          "type": "string",
+          "description": "sample transcriptome gtf"
+        },
+        "transdecoder_gff3": {
+          "type": "string",
+          "description": "CDS regions from transdecoder in transcriptome coordinate space"
+        },
+        "transcripts_fasta": {
+          "type": "string",
+          "description": "cDNA fasta for transcriptome from gffread"
+        },
+        "sample_id": {
+          "type": "string",
+          "description": "sample name"
+        },
+        "fragpipe_dir": {
+          "type": "string",
+          "description": "fragpipe output directory containing subdirs for each enzyme"
+        }
+      }
+    },
+    "igv_report_optional": {
+      "title": "IGV report (optional)",
+      "type": "object",
+      "description": "Create IGV report of proteins of interest",
+      "default": "",
+      "properties": {
+        "igv_report": {
+          "type": "boolean",
+          "description": "create an igv report for proteins of interest"
+        },
+        "bigwig": {
+          "type": "string",
+          "default": "/data1/shahs3/isabl_data_lake/analyses/24/35/42435/results/minimap2/bigwig/SHAH_H003599_T01_01_TR01_R1.bedGraph",
+          "description": "path to bedgraph file for igv_report option"
+        },
+        "protein_list": {
+          "type": "string",
+          "default": "/data1/shahs3/users/preskaa/A673/data/APS010.1_PG3_v_Swissprot/peptidescope/noblastmatch_proteins.txt",
+          "description": "path to a list of protein IDs for igv report"
+        },
+        "ref_genome": {
+          "type": "string",
+          "default": "/data1/shahs3/reference/ref-sarcoma/GRCh38/v45/GRCh38.primary_assembly.genome.fa",
+          "description": "reference genome for transcriptome"
+        },
+        "ref_genome_index": {
+          "type": "string",
+          "default": "/data1/shahs3/reference/ref-sarcoma/GRCh38/v45/GRCh38.primary_assembly.genome.fa.fai",
+          "description": "ref genome index"
         }
       }
     }
@@ -24,35 +83,9 @@
   "allOf": [
     {
       "$ref": "#/$defs/input_output_options"
+    },
+    {
+      "$ref": "#/$defs/igv_report_optional"
     }
-  ],
-  "properties": {
-    "transcript_gtf": {
-      "type": "string",
-      "description": "sample transcriptome gtf"
-    },
-    "transdecoder_gff3": {
-      "type": "string",
-      "description": "CDS regions from transdecoder in transcriptome coordinate space"
-    },
-    "transcripts_fasta": {
-      "type": "string",
-      "description": "cDNA fasta for transcriptome from gffread"
-    },
-    "sample_id": {
-      "type": "string",
-      "description": "sample name"
-    },
-    "fragpipe_dir": {
-      "type": "string",
-      "description": "fragpipe output directory containing subdirs for each enzyme"
-    }
-  },
-  "required": [
-    "transcript_gtf",
-    "transdecoder_gff3",
-    "transcripts_fasta",
-    "sample_id",
-    "fragpipe_dir"
   ]
 }
