@@ -9,14 +9,34 @@
  params.outdir = "/data1/shahs3/users/preskaa/A673/data/APS010.1_PG3_v_Swissprot/transdecoder_ORF_viz"
  params.fragpipe_dir = "/data1/shahs3/users/preskaa/APS010.1_Archive/fragpipe/spike_in" 
  params.sample_id = "A673"
+ params.igv_report = false
+ params.bigwig = "/data1/shahs3/isabl_data_lake/analyses/24/35/42435/results/minimap2/bigwig/SHAH_H003599_T01_01_TR01_R1.bedGraph"
+ params.protein_list = "/data1/shahs3/users/preskaa/A673/data/APS010.1_PG3_v_Swissprot/peptidescope/noblastmatch_proteins.txt"
+ params.ref_genome = "/data1/shahs3/reference/ref-sarcoma/GRCh38/v45/GRCh38.primary_assembly.genome.fa"
+ params.ref_genome_index = "/data1/shahs3/reference/ref-sarcoma/GRCh38/v45/GRCh38.primary_assembly.genome.fa.fai"
+
+// modules
+include { BEDTOOLS_SLOP } from 'modules/nf-core/bedtools/slop/main'
+include { BEDTOOLS_INTERSECT } from 'modules/nf-core/bedtools/intersect/main'
+
 
  workflow {
     GTF2BED(params.transcript_gtf)
     GTF2GFF3(params.transcript_gtf)
     GENOME_ALIGNED_GFF3(GTF2GFF3.out, params.transdecoder_gff3, params.transcripts_fasta)
     GFF3_TO_BED(GENOME_ALIGNED_GFF3.out)
-    DUPS(GFF3_TO_BED.out)
-    PEPTIDE_BED(params.fragpipe_dir, DUPS.out)
+    transcripts_bed = DUPS(GFF3_TO_BED.out)
+    peptides_bed = PEPTIDE_BED(params.fragpipe_dir, transcripts_bed)
+       // Create IGV report if params.igv_report is True
+    if (params.igv_report) {
+        // Define metadata
+        meta = [id: params.sample_id, description: "igv_report"]
+        // bed file for regions of interest
+        regions_bed = INTERESTING_BED(params.protein_list, transcripts_bed)
+        // Generate genome sizes
+        GENOME_SIZES(params.ref_fai)
+        BEDTOOLS_SLOP(meta, INTERESTING_BED.out, GENOME_SIZES.out) { ext.args = "-b 1000" }
+    }
  }
 // convert to gtf to bed file
  process GTF2BED {
@@ -140,6 +160,23 @@ with open("transcripts.fasta.transdecoder.genome.bed", "w") as modified:
     """
     peptide_bedfile.py ${fragpipe_dir} ${transcripts_genome_bed} peptides.bed
     """
+ }
+
+ /*
+ * optional igv_report subworkflow; will refactor into a proper subworkflow
+ */
+
+// get regions of interest
+ process INTERESTING_BED{
+   tag "process_low"
+   container "quay.io/preskaa/biopython:v250221"
+
+   input:
+   path "proteins.txt"
+   path "transcripts.bed"
+
+   ouput:
+   path ""
  }
 
 
