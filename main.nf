@@ -16,8 +16,8 @@
  params.ref_genome_index = "/data1/shahs3/reference/ref-sarcoma/GRCh38/v45/GRCh38.primary_assembly.genome.fa.fai"
 
  // modules
- include { BEDTOOLS_SLOP } from 'modules/nf-core/bedtools/slop/main'
- include { BEDTOOLS_INTERSECT } from 'modules/nf-core/bedtools/intersect/main'
+ include { BEDTOOLS_SLOP } from './modules/nf-core/bedtools/slop/main'
+ include { BEDTOOLS_INTERSECT } from './modules/nf-core/bedtools/intersect/main'
  workflow {
     GTF2BED(params.transcript_gtf)
     GTF2GFF3(params.transcript_gtf)
