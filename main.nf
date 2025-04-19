@@ -16,8 +16,10 @@
  params.ref_genome_index = "/data1/shahs3/reference/ref-sarcoma/GRCh38/v45/GRCh38.primary_assembly.genome.fa.fai"
 
  // modules
- include { BEDTOOLS_SLOP } from './modules/nf-core/bedtools/slop/main'
- include { BEDTOOLS_INTERSECT } from './modules/nf-core/bedtools/intersect/main'
+ include { BEDTOOLS_SLOP } from './modules/local/bedtools/slop/main'
+ include { BEDTOOLS_INTERSECT } from './modules/local/bedtools/intersect/main'
+ include { IGVREPORT } from './modules/local/igvreport/main'
+
  workflow {
     GTF2BED(params.transcript_gtf)
     GTF2GFF3(params.transcript_gtf)
@@ -29,13 +31,33 @@
       meta = [id: params.sample_id, description: "igv_report"]
       regions_bed = INTERESTING_BED(params.protein_list, transcripts_bed)
       GENOME_SIZES(params.ref_genome_index)
-      expanded_regions_bed = BEDTOOLS_SLOP(meta, regions_bed, GENOME_SIZES.out){ext.args = "-b 1000"}
+      expanded_regions_bed = BEDTOOLS_SLOP(regions_bed, GENOME_SIZES.out)
+      // intersect tracks with region of interest; here i pay the price of lack
+      // of metamaps ...
+      bw_ch = channel.of([1 , file(params.bigwig)])
+      peptides_ch = peptides_bed.map{f -> [2, file(f)]}
+      transcripts_ch = transcripts_bed.map{f -> [3, file(f)]}
+      tracks_ch = bw_ch.concat(peptides_ch, transcripts_ch)
+      tracks_ch.view { t -> "track: $t" }
       // intersect tracks of interest
-      filtered_transcripts = BEDTOOLS_INTERSECT(meta, transcripts_bed, expanded_regions_bed, GENOME_SIZES.out)
-      filtered_peptides = BEDTOOLS_INTERSECT(meta, peptides_bed, expanded_regions_bed, GENOME_SIZES.out)
-      filtered_bigwig = BEDTOOLS_INTERSECT(meta, params.bigwig, expanded_regions_bed, GENOME_SIZES.out)
-      //create igv report
-      IGV_REPORT(regions_bed, params.ref_genome, filtered_bigwig, filtered_peptides, filtered_transcripts)
+      combined_ch = tracks_ch.combine(expanded_regions_bed).view(t -> "combined track: $t")
+
+      igv_tracks = BEDTOOLS_INTERSECT(combined_ch).toSortedList{a,b -> a[0] <=> b[0]}.map{v -> v.collect{it[1]}}.view()
+
+      IGVREPORT(regions_bed, params.ref_genome, igv_tracks)
+      //println igv_tracks[0][1]
+      //IGV_REPORT(regions_bed, params.ref_genome, filtered_bigwig, filtered_peptides, filtered_transcripts)
+
+      // bigwig_track = BEDTOOLS_INTERSECT(params.bigwig, expanded_regions_bed)
+      // peps_track = BEDTOOLS_INTERSECT(peptides_bed, expanded_regions_bed)
+      // transcripts_track = BEDTOOLS_INTERSECT(transcripts_bed, expanded_regions_bed)
+      // create igv report
+      // intersect tracks of interest
+      // filtered_transcripts = BEDTOOLS_INTERSECT(meta, transcripts_bed, expanded_regions_bed, GENOME_SIZES.out)
+      // filtered_peptides = BEDTOOLS_INTERSECT(meta, peptides_bed, expanded_regions_bed, GENOME_SIZES.out)
+      // filtered_bigwig = BEDTOOLS_INTERSECT(meta, params.bigwig, expanded_regions_bed, GENOME_SIZES.out)
+      // //create igv report
+      // IGV_REPORT(regions_bed, params.ref_genome, filtered_bigwig, filtered_peptides, filtered_transcripts)
 
     }
  }
