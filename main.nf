@@ -37,11 +37,10 @@ workflow {
       peptides_ch = peptides_bed.map { f -> [2, file(f)] }
       transcripts_ch = transcripts_bed.map { f -> [3, file(f)] }
       tracks_ch = bw_ch.concat(peptides_ch, transcripts_ch)
-      tracks_ch.view { t -> "track: ${t}" }
       // intersect tracks of interest
       combined_ch = tracks_ch.combine(expanded_regions_bed)
 
-      igv_tracks = BEDTOOLS_INTERSECT(combined_ch).toSortedList { a, b -> a[0] <=> b[0] }.map { v -> v.collect { it[1] } }.view()
+      igv_tracks = BEDTOOLS_INTERSECT(combined_ch).toSortedList { a, b -> a[0] <=> b[0] }.map { v -> v.collect { it[1] } }
 
       IGVREPORT(regions_bed, params.ref_genome, igv_tracks)
    }
