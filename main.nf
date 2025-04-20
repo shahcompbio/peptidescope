@@ -3,117 +3,102 @@
  * Defines the pipeline input parameters (with a default value for each one).
  * Each of the following parameters can be specified as command line options.
  */
- params.transcript_gtf = "/data1/shahs3/users/preskaa/APS010.1_Archive/bambu_out/multiSample_NDR_0.1/detected_transcripts.gtf"
- params.transdecoder_gff3 = "/data1/shahs3/users/preskaa/APS010.1_Archive/transdecoder/NDR_0.1/transcripts.fa.transdecoder.gff3"
- params.transcripts_fasta = "/data1/shahs3/users/preskaa/APS010.1_Archive/gffread/NDR_0.1/transcripts.fa"
- params.outdir = "/data1/shahs3/users/preskaa/A673/data/APS010.1_PG3_v_Swissprot/transdecoder_ORF_viz"
- params.fragpipe_dir = "/data1/shahs3/users/preskaa/APS010.1_Archive/fragpipe/spike_in"
- params.sample_id = "A673"
- params.igv_report = false
- params.bigwig = "/data1/shahs3/isabl_data_lake/analyses/24/35/42435/results/minimap2/bigwig/SHAH_H003599_T01_01_TR01_R1.bedGraph"
- params.protein_list = "/data1/shahs3/users/preskaa/A673/data/APS010.1_PG3_v_Swissprot/peptidescope/noblastmatch_proteins.txt"
- params.ref_genome = "/data1/shahs3/reference/ref-sarcoma/GRCh38/v45/GRCh38.primary_assembly.genome.fa"
- params.ref_genome_index = "/data1/shahs3/reference/ref-sarcoma/GRCh38/v45/GRCh38.primary_assembly.genome.fa.fai"
+params.transcript_gtf    = "/data1/shahs3/users/preskaa/APS010.1_Archive/bambu_out/multiSample_NDR_0.1/detected_transcripts.gtf"
+params.transdecoder_gff3 = "/data1/shahs3/users/preskaa/APS010.1_Archive/transdecoder/NDR_0.1/transcripts.fa.transdecoder.gff3"
+params.transcripts_fasta = "/data1/shahs3/users/preskaa/APS010.1_Archive/gffread/NDR_0.1/transcripts.fa"
+params.outdir            = "/data1/shahs3/users/preskaa/A673/data/APS010.1_PG3_v_Swissprot/transdecoder_ORF_viz"
+params.fragpipe_dir      = "/data1/shahs3/users/preskaa/APS010.1_Archive/fragpipe/spike_in"
+params.sample_id         = "A673"
+params.igv_report        = false
+params.bigwig            = "/data1/shahs3/isabl_data_lake/analyses/24/35/42435/results/minimap2/bigwig/SHAH_H003599_T01_01_TR01_R1.bedGraph"
+params.protein_list      = "/data1/shahs3/users/preskaa/A673/data/APS010.1_PG3_v_Swissprot/peptidescope/noblastmatch_proteins.txt"
+params.ref_genome        = "/data1/shahs3/reference/ref-sarcoma/GRCh38/v45/GRCh38.primary_assembly.genome.fa"
+params.ref_genome_index  = "/data1/shahs3/reference/ref-sarcoma/GRCh38/v45/GRCh38.primary_assembly.genome.fa.fai"
 
- // modules
- include { BEDTOOLS_SLOP } from './modules/local/bedtools/slop/main'
- include { BEDTOOLS_INTERSECT } from './modules/local/bedtools/intersect/main'
- include { IGVREPORT } from './modules/local/igvreport/main'
+// modules
+include { BEDTOOLS_SLOP      } from './modules/local/bedtools/slop/main'
+include { BEDTOOLS_INTERSECT } from './modules/local/bedtools/intersect/main'
+include { IGVREPORT          } from './modules/local/igvreport/main'
 
- workflow {
-    GTF2BED(params.transcript_gtf)
-    GTF2GFF3(params.transcript_gtf)
-    GENOME_ALIGNED_GFF3(GTF2GFF3.out, params.transdecoder_gff3, params.transcripts_fasta)
-    GFF3_TO_BED(GENOME_ALIGNED_GFF3.out)
-    transcripts_bed = DUPS(GFF3_TO_BED.out)
-    peptides_bed = PEPTIDE_BED(params.fragpipe_dir, transcripts_bed)
-    if (params.igv_report) {
-      meta = [id: params.sample_id, description: "igv_report"]
+workflow {
+   GTF2BED(params.transcript_gtf)
+   GTF2GFF3(params.transcript_gtf)
+   GENOME_ALIGNED_GFF3(GTF2GFF3.out, params.transdecoder_gff3, params.transcripts_fasta)
+   GFF3_TO_BED(GENOME_ALIGNED_GFF3.out)
+   transcripts_bed = DUPS(GFF3_TO_BED.out)
+   peptides_bed = PEPTIDE_BED(params.fragpipe_dir, transcripts_bed)
+   if (params.igv_report) {
       regions_bed = INTERESTING_BED(params.protein_list, transcripts_bed)
       GENOME_SIZES(params.ref_genome_index)
       expanded_regions_bed = BEDTOOLS_SLOP(regions_bed, GENOME_SIZES.out)
       // intersect tracks with region of interest; here i pay the price of lack
       // of metamaps ...
-      bw_ch = channel.of([1 , file(params.bigwig)])
-      peptides_ch = peptides_bed.map{f -> [2, file(f)]}
-      transcripts_ch = transcripts_bed.map{f -> [3, file(f)]}
+      bw_ch = channel.of([1, file(params.bigwig)])
+      peptides_ch = peptides_bed.map { f -> [2, file(f)] }
+      transcripts_ch = transcripts_bed.map { f -> [3, file(f)] }
       tracks_ch = bw_ch.concat(peptides_ch, transcripts_ch)
-      tracks_ch.view { t -> "track: $t" }
+      tracks_ch.view { t -> "track: ${t}" }
       // intersect tracks of interest
-      combined_ch = tracks_ch.combine(expanded_regions_bed).view(t -> "combined track: $t")
+      combined_ch = tracks_ch.combine(expanded_regions_bed)
 
-      igv_tracks = BEDTOOLS_INTERSECT(combined_ch).toSortedList{a,b -> a[0] <=> b[0]}.map{v -> v.collect{it[1]}}.view()
+      igv_tracks = BEDTOOLS_INTERSECT(combined_ch).toSortedList { a, b -> a[0] <=> b[0] }.map { v -> v.collect { it[1] } }.view()
 
       IGVREPORT(regions_bed, params.ref_genome, igv_tracks)
-      //println igv_tracks[0][1]
-      //IGV_REPORT(regions_bed, params.ref_genome, filtered_bigwig, filtered_peptides, filtered_transcripts)
-
-      // bigwig_track = BEDTOOLS_INTERSECT(params.bigwig, expanded_regions_bed)
-      // peps_track = BEDTOOLS_INTERSECT(peptides_bed, expanded_regions_bed)
-      // transcripts_track = BEDTOOLS_INTERSECT(transcripts_bed, expanded_regions_bed)
-      // create igv report
-      // intersect tracks of interest
-      // filtered_transcripts = BEDTOOLS_INTERSECT(meta, transcripts_bed, expanded_regions_bed, GENOME_SIZES.out)
-      // filtered_peptides = BEDTOOLS_INTERSECT(meta, peptides_bed, expanded_regions_bed, GENOME_SIZES.out)
-      // filtered_bigwig = BEDTOOLS_INTERSECT(meta, params.bigwig, expanded_regions_bed, GENOME_SIZES.out)
-      // //create igv report
-      // IGV_REPORT(regions_bed, params.ref_genome, filtered_bigwig, filtered_peptides, filtered_transcripts)
-
-    }
- }
+   }
+}
 // convert to gtf to bed file
- process GTF2BED {
-    tag "process_low"
-    container "quay.io/biocontainers/transdecoder:5.7.1--pl5321hdfd78af_0"
+process GTF2BED {
+   tag "process_low"
+   container "quay.io/biocontainers/transdecoder:5.7.1--pl5321hdfd78af_0"
 
-    input:
-    path transcript_gtf
+   input:
+   path transcript_gtf
 
-    output:
-    path "transcripts.bed"
+   output:
+   path "transcripts.bed"
 
-    script:
-    """
+   script:
+   """
     gtf_to_bed.pl ${transcript_gtf} > transcripts.bed
     """
- }
+}
 // convert the predictions to a genome based bed file as well
- process GTF2GFF3 {
-    tag "process_low"
-    container "quay.io/biocontainers/transdecoder:5.7.1--pl5321hdfd78af_0"
+process GTF2GFF3 {
+   tag "process_low"
+   container "quay.io/biocontainers/transdecoder:5.7.1--pl5321hdfd78af_0"
 
-    input:
-    path transcript_gtf
+   input:
+   path transcript_gtf
 
-    output:
-    path "transcripts.gff3"
+   output:
+   path "transcripts.gff3"
 
-    script:
-    """
+   script:
+   """
     gtf_to_alignment_gff3.pl ${transcript_gtf} > transcripts.gff3
     """
- }
+}
 // generate genome coordinate based CDS annotation
- process GENOME_ALIGNED_GFF3 {
-    tag "process_low"
-    container "quay.io/biocontainers/transdecoder:5.7.1--pl5321hdfd78af_0"
+process GENOME_ALIGNED_GFF3 {
+   tag "process_low"
+   container "quay.io/biocontainers/transdecoder:5.7.1--pl5321hdfd78af_0"
 
-    input:
-    path transcripts_gff3
-    path transdecoder_gff3
-    path transcripts_fasta
+   input:
+   path transcripts_gff3
+   path transdecoder_gff3
+   path transcripts_fasta
 
-    output:
-    path "transcripts.transdecoder.genome.gff3"
+   output:
+   path "transcripts.transdecoder.genome.gff3"
 
-    script:
-    """
+   script:
+   """
     transcript_orf_to_genome_orf.pl ${transdecoder_gff3} ${transcripts_gff3} \
     ${transcripts_fasta} > transcripts.transdecoder.genome.gff3
     """
- }
+}
 // generate bed file
-process GFF3_TO_BED{
+process GFF3_TO_BED {
    tag "process_low"
    container "quay.io/biocontainers/transdecoder:5.7.1--pl5321hdfd78af_0"
 
@@ -129,9 +114,9 @@ process GFF3_TO_BED{
    """
 }
 // remove duplicate entries (this is because we stink at perl)
-process DUPS{
+process DUPS {
    tag "process_low"
-   publishDir "${params.outdir}/visualization/${params.sample_id}"
+   publishDir "${params.outdir}/visualization/${params.sample_id}", mode: 'copy', overwrite: false
    container "quay.io/preskaa/biopython:v250221"
 
    input:
@@ -162,40 +147,40 @@ with open("transcripts.fasta.transdecoder.genome.bed", "r") as original:
 with open("transcripts.fasta.transdecoder.genome.bed", "w") as modified:
    modified.write(track_line + data)
 """
-
 }
 
 // generate bed file with peptides
- process PEPTIDE_BED {
-    tag "process_low"
-    container "quay.io/preskaa/biopython:v250221"
-    publishDir "${params.outdir}/visualization/${params.sample_id}"
+process PEPTIDE_BED {
+   tag "process_low"
+   container "quay.io/preskaa/biopython:v250221"
+   publishDir "${params.outdir}/visualization/${params.sample_id}", mode: 'copy', overwrite: false
 
-    input:
-    path fragpipe_dir
-    path transcripts_genome_bed // transcriptome bed file in ref genome coordinates
+   input:
+   path fragpipe_dir
+   path transcripts_genome_bed
 
-    output:
-    path "peptides.bed"
+   output:
+   path "peptides.bed"
 
-    script:
-    """
+   script:
+   """
     peptide_bedfile.py ${fragpipe_dir} ${transcripts_genome_bed} peptides.bed
     """
- }
+}
 
 /*
  * will refactor the following into a subworkflow called IGV_REPORT
  */
 
- // generate bedfile of proteins of interest 
-process INTERESTING_BED{
+// generate bedfile of proteins of interest 
+process INTERESTING_BED {
    tag "process_low"
    container "quay.io/preskaa/biopython:v250221"
 
    input:
-   path "proteins.txt" // list of proteins of interest
-   path "transcripts.genome.bed" // transcript bed file
+   path "proteins.txt"
+   // list of proteins of interest
+   path "transcripts.genome.bed"
 
    output:
    path "igv_report.proteins.bed"
@@ -219,16 +204,15 @@ tx_bed.to_csv("igv_report.proteins.bed",
                header=False, 
                index=False)
 """
-
 }
 
 // generate genome sizes for bedtools slop
-process GENOME_SIZES{
+process GENOME_SIZES {
    tag "process_low"
    container "quay.io/nf-core/ubuntu:22.04"
 
    input:
-   path genome_index // ref genome index
+   path genome_index
 
    output:
    path "genome_sizes.txt"
@@ -236,33 +220,5 @@ process GENOME_SIZES{
    script:
    """
    cut -f1,2 ${genome_index} > genome_sizes.txt
-   """
-}
-
-// generate igv report
-process IGV_REPORT{
-   tag "process_low"
-   container "quay.io/biocontainers/igv-reports:1.14.1--pyh7e72e81_0"
-   publishDir "${params.outdir}/visualization/${params.sample_id}"
-
-   input:
-   path regions_bed // regions of interest
-   path refgenome // ref genome sample was aligned to
-   path filtered_bigwig // filtered bigwig
-   path filtered_peptides_bed // peptides filtered
-   path filtered_transcripts_bed // filtered transcripts bed file
-
-   output:
-   path "peptides_igv_report.html"
-
-   script:
-   """
-   create_report ${regions_bed} \
-      --fasta ${refgenome} \
-      --genome hg38 \
-      --info-columns ID \
-      --zero_based true \
-      --tracks ${filtered_bigwig} ${filtered_peptides_bed} ${filtered_transcripts_bed} \
-      --output peptides_igv_report.html
    """
 }
