@@ -31,4 +31,4 @@ nextflow run ${pipelinedir}/main.nf \
     --protein_list ${protein_list} \
     --ref_genome ${ref_genome} \
     --ref_genome_idx ${ref_genome}.fai \
-    -resume
+   # -resume
