@@ -17,6 +17,6 @@ process BEDTOOLS_SLOP {
 
     script:
     """
-    bedtools slop -i ${raw_regions_bed} -g ${genome_sizes} -b 1000 > expanded.regions.bed
+    bedtools slop -i ${raw_regions_bed} -g ${genome_sizes} -b 100000 > expanded.regions.bed
     """
 }

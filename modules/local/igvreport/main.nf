@@ -1,7 +1,7 @@
 // create igv-report using proteins of interest
 process IGVREPORT {
     tag 'process_low'
-    publishDir "${params.outdir}/visualization/${params.sample_id}", mode: 'copy', overwrite: false
+    publishDir "${params.outdir}/visualization/${params.sample_id}", mode: 'copy', overwrite: true
 
     conda "${moduleDir}/environment.yml"
     container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container

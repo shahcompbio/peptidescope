@@ -115,7 +115,7 @@ process GFF3_TO_BED {
 // remove duplicate entries (this is because we stink at perl)
 process DUPS {
    tag "process_low"
-   publishDir "${params.outdir}/visualization/${params.sample_id}", mode: 'copy', overwrite: false
+   publishDir "${params.outdir}/visualization/${params.sample_id}", mode: 'copy', overwrite: true
    container "quay.io/preskaa/biopython:v250221"
 
    input:
@@ -152,7 +152,7 @@ with open("transcripts.fasta.transdecoder.genome.bed", "w") as modified:
 process PEPTIDE_BED {
    tag "process_low"
    container "quay.io/preskaa/biopython:v250221"
-   publishDir "${params.outdir}/visualization/${params.sample_id}", mode: 'copy', overwrite: false
+   publishDir "${params.outdir}/visualization/${params.sample_id}", mode: 'copy', overwrite: true
 
    input:
    path fragpipe_dir
