@@ -23,6 +23,7 @@ process IGVREPORT {
    create_report ${regions_bed} \
       --fasta ${refgenome} \
       --genome hg38 \
+      --flanking 10000 \
       --info-columns ID \
       --zero_based true \
       --tracks ${bigwig} ${peptides} ${transcripts} \

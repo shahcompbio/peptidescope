@@ -11,6 +11,23 @@ tx_bed_path = sys.argv[2]
 pep_bed_path = sys.argv[3]
 
 # useful functions
+def get_subdirectories(folder_path):
+  """
+  Returns a list of all subdirectories within the given folder path.
+
+  Args:
+    folder_path: The path to the folder to search.
+
+  Returns:
+    A list of strings, where each string is the full path to a subdirectory.
+    Returns an empty list if the folder does not exist or has no subdirectories.
+  """
+  if not os.path.isdir(folder_path):
+    return []
+
+  subdirectories = [f.path for f in os.scandir(folder_path) if f.is_dir()]
+  return subdirectories
+
 def pep_ref_pos(ORF_start_idx, ORF_start, block_ends, 
                 pep_pos, block_sizes, block_starts, ORF_end):
     """
@@ -65,17 +82,15 @@ def calc_orf_size(block_sizes, start_interval, end_interval,
             ORF_size += block_size
     return ORF_size
 
-# load enzymes (will refactor later for general use)
-enzymes = ["argc", "aspn", "gluc", 
-           "in-house_chymotrypsin", "lysc", "lysn", 
-           "proalanase", "trypsin"]
+# get subdirectories for enzymes
+enzyme_subdirs = get_subdirectories(archive)
 detected_df1 = pd.DataFrame()
-for i in np.arange(0, len(enzymes)):
-    enzyme = enzymes[i]
-    fa_path = os.path.join(archive, enzyme + "_diaPASEF_groupFDR", "peptide.tsv")
+for i in np.arange(0, len(enzyme_subdirs)):
+    enzyme_dir = enzyme_subdirs[i]
+    fa_path = os.path.join(enzyme_dir, "peptide.tsv")
     temp = pd.read_csv(fa_path, sep="\t")
     # protein csv
-    fa_path = os.path.join(archive, enzyme + "_diaPASEF_groupFDR", "protein.tsv")
+    fa_path = os.path.join(enzyme_dir, "protein.tsv")
     protein_df = pd.read_csv(fa_path, sep="\t")
     protein_df = protein_df[["Protein", "Length"]]
     protein_df.columns = ["Protein", "Protein Length"]
