@@ -1,19 +1,5 @@
 #!/usr/bin/env nextflow
-/*
- * Defines the pipeline input parameters (with a default value for each one).
- * Each of the following parameters can be specified as command line options.
- */
-params.transcript_gtf    = "/data1/shahs3/users/preskaa/APS010.1_Archive/bambu_out/multiSample_NDR_0.1/detected_transcripts.gtf"
-params.transdecoder_gff3 = "/data1/shahs3/users/preskaa/APS010.1_Archive/transdecoder/NDR_0.1/transcripts.fa.transdecoder.gff3"
-params.transcripts_fasta = "/data1/shahs3/users/preskaa/APS010.1_Archive/gffread/NDR_0.1/transcripts.fa"
-params.outdir            = "/data1/shahs3/users/preskaa/A673/data/APS010.1_PG3_v_Swissprot/transdecoder_ORF_viz"
-params.fragpipe_dir      = "/data1/shahs3/users/preskaa/APS010.1_Archive/fragpipe/spike_in"
-params.sample_id         = "A673"
-params.igv_report        = false
-params.bigwig            = "/data1/shahs3/isabl_data_lake/analyses/24/35/42435/results/minimap2/bigwig/SHAH_H003599_T01_01_TR01_R1.bedGraph"
-params.protein_list      = "/data1/shahs3/users/preskaa/A673/data/APS010.1_PG3_v_Swissprot/peptidescope/noblastmatch_proteins.txt"
-params.ref_genome        = "/data1/shahs3/reference/ref-sarcoma/GRCh38/v45/GRCh38.primary_assembly.genome.fa"
-params.ref_genome_index  = "/data1/shahs3/reference/ref-sarcoma/GRCh38/v45/GRCh38.primary_assembly.genome.fa.fai"
+
 
 // modules
 include { BEDTOOLS_SLOP      } from './modules/local/bedtools/slop/main'
@@ -175,6 +161,7 @@ process PEPTIDE_BED {
 process INTERESTING_BED {
    tag "process_low"
    container "quay.io/preskaa/biopython:v250221"
+   publishDir "${params.outdir}/visualization/${params.sample_id}", mode: 'copy', overwrite: true
 
    input:
    path "proteins.txt"

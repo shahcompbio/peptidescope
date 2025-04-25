@@ -31,4 +31,5 @@ nextflow run ${pipelinedir}/main.nf \
     --bigwig ${bigwig} \
     --protein_list ${protein_list} \
     --ref_genome ${ref_genome} \
-    --ref_genome_index ${ref_genome}.fai
+    --ref_genome_index ${ref_genome}.fai \
+    -resume
