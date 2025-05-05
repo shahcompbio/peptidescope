@@ -1,5 +1,6 @@
 #!/usr/bin/env perl
-
+# original script written by Brian Haas as part of TransDecoder: https://github.com/TransDecoder/TransDecoder
+# tweaked for use with peptidescope here
 use strict;
 use warnings;
 use Carp;
