@@ -88,6 +88,9 @@ detected_df1 = pd.DataFrame()
 for i in np.arange(0, len(enzyme_subdirs)):
     enzyme_dir = enzyme_subdirs[i]
     fa_path = os.path.join(enzyme_dir, "peptide.tsv")
+    if not os.path.exists(fa_path):
+        print(f"peptide.tsv not found in {enzyme_dir}")
+        continue
     temp = pd.read_csv(fa_path, sep="\t")
     # protein csv
     fa_path = os.path.join(enzyme_dir, "protein.tsv")
