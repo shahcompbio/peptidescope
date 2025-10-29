@@ -17,6 +17,6 @@ process BEDTOOLS_INTERSECT {
     script:
     def track_name = track.getName()
     """
-    bedtools intersect -a ${track} -b ${region} > filtered.${track_name}
+    bedtools intersect -u -wa -a ${track} -b ${region} > filtered.${track_name}
     """
 }

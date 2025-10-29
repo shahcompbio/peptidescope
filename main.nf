@@ -12,7 +12,7 @@ workflow {
    GENOME_ALIGNED_GFF3(GTF2GFF3.out, params.transdecoder_gff3, params.transcripts_fasta)
    GFF3_TO_BED(GENOME_ALIGNED_GFF3.out)
    transcripts_bed = DUPS(GFF3_TO_BED.out)
-   peptides_bed = PEPTIDE_BED(params.fragpipe_dir, transcripts_bed)
+   peptides_bed = PEPTIDE_BED(params.fragpipe_dir, transcripts_bed, params.protein_info)
    if (params.igv_report) {
       regions_bed = INTERESTING_BED(params.protein_list, transcripts_bed)
       GENOME_SIZES(params.ref_genome_index)
@@ -144,13 +144,18 @@ process PEPTIDE_BED {
    input:
    path fragpipe_dir
    path transcripts_genome_bed
+   path protein_info_table
 
    output:
    path "peptides.bed"
 
    script:
    """
-    peptide_bedfile.py ${fragpipe_dir} ${transcripts_genome_bed} peptides.bed
+    peptide_bedfile.py \
+      ${fragpipe_dir} \
+      ${transcripts_genome_bed} \
+      peptides.bed \
+      ${protein_info_table}
     """
 }
 
@@ -178,17 +183,21 @@ process INTERESTING_BED {
 import pandas as pd
 # read in protein list
 with open("proteins.txt", 'r') as file:
-    proteins = [line.strip() for line in file]
-col_names = ["chrom", "chromStart", "chromEnd", "name", 
+    proteins = [line.strip() for line in file if line.strip()]  # filter out empty lines
+col_names = ["chrom", "chromStart", "chromEnd", "name",
                "score", "strand", "thickStart", "thickEnd",
                "itemRgb", "blockCount", "blockSizes", "blockStarts"]
 tx_bed = pd.read_csv("transcripts.genome.bed", sep="\t", skiprows=1, names=col_names)
-tx_bed = tx_bed[tx_bed["name"].apply(
-    lambda x: any(f"{prot}.p" in x for prot in proteins)
-)]
-tx_bed.to_csv("igv_report.proteins.bed", 
-               sep="\t", 
-               header=False, 
+
+# Filter for transcripts containing any protein from the list
+# Using str.contains with regex pattern (more efficient than apply)
+pattern = '|'.join([f"{prot};" for prot in proteins])
+print(pattern)
+tx_bed = tx_bed[tx_bed["name"].str.contains(pattern, na=False, regex=True)]
+
+tx_bed.to_csv("igv_report.proteins.bed",
+               sep="\t",
+               header=False,
                index=False)
 """
 }

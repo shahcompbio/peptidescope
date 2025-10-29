@@ -9,6 +9,7 @@ import sys
 archive = sys.argv[1]
 tx_bed_path = sys.argv[2]
 pep_bed_path = sys.argv[3]
+protein_info_path = sys.argv[4]
 
 # useful functions
 def get_subdirectories(folder_path):
@@ -100,9 +101,13 @@ for i in np.arange(0, len(enzyme_subdirs)):
     temp = pd.merge(temp, protein_df, on="Protein", how="left")
     detected_df1 = pd.concat([detected_df1, temp])
 
-
+# prepare protein info lookup dictionary if provided
+if protein_info_path is not None:
+    protein_info_df = pd.read_csv(protein_info_path, sep="\t")
+    protein_info_dict = dict(zip(list(protein_info_df["Protein"]), list(protein_info_df["ORF"])))
 # drop indistinguishable proteoforms
 unique_df = detected_df1[detected_df1["Mapped Proteins"].isna()]
+# unique_df = detected_df1
 # load in transcript structures
 col_names = ["chrom", "chromStart", "chromEnd", "name", 
                   "score", "strand", "thickStart", "thickEnd",
@@ -120,12 +125,21 @@ data = []
 # loop through protein groups; could be faster but should work
 for protein, group in protein_groups:
     # fetch transcript info
-    tx_id = protein
-    bedrow = tx_bed[tx_bed["name"].str.contains(f"{tx_id}.p")]
+    if protein_info_path is not None:
+        _, unique_id, _ = protein.split("|")
+        print(protein)
+        ORF_id = protein_info_dict.get(unique_id, "missing")
+        print(ORF_id)
+        bedrow = tx_bed[tx_bed["name"].str.contains(f"{ORF_id};")]
+    else:
+        tx_id = protein
+        ORF_id = f"{tx_id}.p"
+        # fetch transcript coordinates
+        bedrow = tx_bed[tx_bed["name"].str.contains(ORF_id)]
     if len(bedrow) < 1:
-        print(f"no transcript match for {tx_id}")
+        print(f"no transcript match for {ORF_id}")
         continue
-    assert len(bedrow) == 1, f"Expected 1 match for {tx_id}, found {len(bedrow)}"
+    assert len(bedrow) == 1, f"Expected 1 match for {ORF_id}, found {len(bedrow)}"
     bedrow = bedrow.squeeze()
     block_sizes = [int(x) for x in bedrow["blockSizes"].split(",")]
     block_starts = [int(x) for x in bedrow["blockStarts"].split(",")]
@@ -179,7 +193,7 @@ for protein, group in protein_groups:
             'chrom':bedrow['chrom'],
             'chromStart':bedrow['chromStart'],
             'chromEnd':bedrow['chromEnd'],
-            'name': f"{tx_id}_peptide_{i}",
+            'name': f"{ORF_id}_peptide_{i}",
             'score': bedrow['score'],
             'strand': bedrow['strand'],
             'thickStart':genomic_pepstart,
@@ -191,6 +205,7 @@ for protein, group in protein_groups:
         })
         i += 1
 test_pep_bed = pd.DataFrame(data)
+test_pep_bed = test_pep_bed.drop_duplicates()
 # make our test bed file
 test_pep_bed.to_csv(pep_bed_path, sep="\t", header=False, index=False)
 track_line = 'track name="unique peptides" description="detected peptides" visibility=2 itemRgb="On"\n'
