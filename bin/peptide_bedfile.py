@@ -5,7 +5,6 @@ import os
 import sys
 
 #paths
-#TODO: there is an occasional bug where the peptides appear to be one AA short; need to have code review
 archive = sys.argv[1]
 tx_bed_path = sys.argv[2]
 pep_bed_path = sys.argv[3]
@@ -106,8 +105,8 @@ if protein_info_path is not None:
     protein_info_df = pd.read_csv(protein_info_path, sep="\t")
     protein_info_dict = dict(zip(list(protein_info_df["Protein"]), list(protein_info_df["ORF"])))
 # drop indistinguishable proteoforms
-unique_df = detected_df1[detected_df1["Mapped Proteins"].isna()]
-# unique_df = detected_df1
+#unique_df = detected_df1[detected_df1["Mapped Proteins"].isna()]
+unique_df = detected_df1
 # load in transcript structures
 col_names = ["chrom", "chromStart", "chromEnd", "name", 
                   "score", "strand", "thickStart", "thickEnd",
@@ -127,9 +126,9 @@ for protein, group in protein_groups:
     # fetch transcript info
     if protein_info_path is not None:
         _, unique_id, _ = protein.split("|")
-        print(protein)
+        # print(protein)
         ORF_id = protein_info_dict.get(unique_id, "missing")
-        print(ORF_id)
+        # print(ORF_id)
         bedrow = tx_bed[tx_bed["name"].str.contains(f"{ORF_id};")]
     else:
         tx_id = protein
@@ -162,11 +161,13 @@ for protein, group in protein_groups:
     i = 1
     # determine peptide positions
     for _, row in group.iterrows():
-        peplen = 3*(row["Peptide Length"])
-        if bedrow["strand"] == "+":
-            # get peptide start and end; correcting for differences in indexing
+        if row["Protein Start"] == row["Protein End"]:
+            print(f"skipping peptide {row["Peptide"]} with same start/end; philosopher bug?")
+            continue
+        elif bedrow["strand"] == "+":
+            # convert to bed coordinates (0-start, half-open)
             pepstart = 3*(row["Protein Start"]-1)
-            pepend = 3*(row["Protein End"]-1)
+            pepend = 3*row["Protein End"]
             # determine peptide start position in genomic coordinates
             genomic_pepstart = pep_ref_pos(start_interval, ORF_start, block_ends, 
                                            pepstart, block_sizes, block_starts, ORF_end)
@@ -175,8 +176,8 @@ for protein, group in protein_groups:
                                          pepend, block_sizes, block_starts, ORF_end)
         else:
             # negative strand
-            # flip protein start end coordinates
-            pepstart = ORF_size - 3*(row["Protein End"])
+            # convert to bed coordinates (0-start, half-open)
+            pepstart = ORF_size - 3*row["Protein End"]
             pepend = ORF_size - 3*(row["Protein Start"]-1)
             # determine peptide start position in genomic coordinates
             genomic_pepstart = pep_ref_pos(start_interval, ORF_start, block_ends, 
@@ -186,9 +187,9 @@ for protein, group in protein_groups:
                                          pepend, block_sizes, block_starts, ORF_end) 
         # check that coordinates make sense
         assert ORF_end >= genomic_pepend, \
-            f"peptide ends after ORF {genomic_pepend} > {ORF_end} for {tx_id}"
+            f"peptide ends after ORF {genomic_pepend} > {ORF_end} for {ORF_id}"
         assert ORF_start <= genomic_pepstart, \
-            f"peptide starts before ORF {genomic_pepstart} < {ORF_start} for {tx_id}"
+            f"peptide starts before ORF {genomic_pepstart} < {ORF_start} for {ORF_id}"
         data.append({
             'chrom':bedrow['chrom'],
             'chromStart':bedrow['chromStart'],
@@ -196,7 +197,7 @@ for protein, group in protein_groups:
             'name': f"{ORF_id}_peptide_{i}",
             'score': bedrow['score'],
             'strand': bedrow['strand'],
-            'thickStart':genomic_pepstart,
+            'thickStart': genomic_pepstart,
             'thickEnd': genomic_pepend,
             'itemRgb': '0',
             'blockCount': bedrow["blockCount"],
