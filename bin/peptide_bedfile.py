@@ -104,9 +104,9 @@ for i in np.arange(0, len(enzyme_subdirs)):
 if protein_info_path is not None:
     protein_info_df = pd.read_csv(protein_info_path, sep="\t")
     protein_info_dict = dict(zip(list(protein_info_df["Protein"]), list(protein_info_df["ORF"])))
-# drop indistinguishable proteoforms
-#unique_df = detected_df1[detected_df1["Mapped Proteins"].isna()]
-unique_df = detected_df1
+# drop indistinguishable peptides
+unique_df = detected_df1[detected_df1["Mapped Proteins"].isna()]
+# unique_df = detected_df1
 # load in transcript structures
 col_names = ["chrom", "chromStart", "chromEnd", "name", 
                   "score", "strand", "thickStart", "thickEnd",
@@ -162,7 +162,7 @@ for protein, group in protein_groups:
     # determine peptide positions
     for _, row in group.iterrows():
         if row["Protein Start"] == row["Protein End"]:
-            print(f"skipping peptide {row["Peptide"]} with same start/end; philosopher bug?")
+            print(f"skipping peptide {row['Peptide']} with same start/end; philosopher bug?")
             continue
         elif bedrow["strand"] == "+":
             # convert to bed coordinates (0-start, half-open)
