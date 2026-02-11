@@ -3,33 +3,19 @@ import numpy as np
 import pandas as pd
 import os
 import sys
+import glob
 
-#paths
+# paths
 archive = sys.argv[1]
 tx_bed_path = sys.argv[2]
 pep_bed_path = sys.argv[3]
 protein_info_path = sys.argv[4]
 
+
 # useful functions
-def get_subdirectories(folder_path):
-  """
-  Returns a list of all subdirectories within the given folder path.
-
-  Args:
-    folder_path: The path to the folder to search.
-
-  Returns:
-    A list of strings, where each string is the full path to a subdirectory.
-    Returns an empty list if the folder does not exist or has no subdirectories.
-  """
-  if not os.path.isdir(folder_path):
-    return []
-
-  subdirectories = [f.path for f in os.scandir(folder_path) if f.is_dir()]
-  return subdirectories
-
-def pep_ref_pos(ORF_start_idx, ORF_start, block_ends, 
-                pep_pos, block_sizes, block_starts, ORF_end):
+def pep_ref_pos(
+    ORF_start_idx, ORF_start, block_ends, pep_pos, block_sizes, block_starts, ORF_end
+):
     """
     determine peptide genomic coordinates
     ORF_start_idx: index of exon in which ORF begins
@@ -41,35 +27,44 @@ def pep_ref_pos(ORF_start_idx, ORF_start, block_ends,
     # reset interval
     interval = ORF_start_idx
     # determine peptide start position in genomic coordinates
-    block_size = block_ends[interval]-ORF_start
+    block_size = block_ends[interval] - ORF_start
     bps = pep_pos
     while bps >= block_size and interval + 1 < len(block_sizes):
         # subtract off cDNA from block
-        bps = bps-block_size
+        bps = bps - block_size
         # jump to next block
         interval = interval + 1
         # fetch block size of next block
         block_size = block_sizes[interval]
     # set genomic peptide start position
     if ORF_start_idx == interval:
-        genomic_pep_pos = bps+ORF_start
+        genomic_pep_pos = bps + ORF_start
     # fresh outta peptides
     elif bps == 0:
         genomic_pep_pos = ORF_end
     else:
-        genomic_pep_pos = bps+block_starts[interval]
-    assert genomic_pep_pos <= ORF_end, \
-        f"Peptide position {genomic_pep_pos} exceeds ORF end {ORF_end}"
+        genomic_pep_pos = bps + block_starts[interval]
+    assert (
+        genomic_pep_pos <= ORF_end
+    ), f"Peptide position {genomic_pep_pos} exceeds ORF end {ORF_end}"
     return genomic_pep_pos
 
-def calc_orf_size(block_sizes, start_interval, end_interval, 
-                  block_starts, block_ends, ORF_start, ORF_end):
+
+def calc_orf_size(
+    block_sizes,
+    start_interval,
+    end_interval,
+    block_starts,
+    block_ends,
+    ORF_start,
+    ORF_end,
+):
     """
     compute ORF cDNA length
     """
     # check if ORF is in single block; will also catch single exons
     if start_interval == end_interval:
-        ORF_size = ORF_end-ORF_start
+        ORF_size = ORF_end - ORF_start
     else:
         ORF_size = 0
         for i in np.arange(start_interval, end_interval + 1):
@@ -82,19 +77,16 @@ def calc_orf_size(block_sizes, start_interval, end_interval,
             ORF_size += block_size
     return ORF_size
 
-# get subdirectories for enzymes
-enzyme_subdirs = get_subdirectories(archive)
+
+# get peptide.tsv files across enzyme subdirectories
+peptide_files = glob.glob(os.path.join(archive, "**", "peptide.tsv"), recursive=True)
 detected_df1 = pd.DataFrame()
-for i in np.arange(0, len(enzyme_subdirs)):
-    enzyme_dir = enzyme_subdirs[i]
-    fa_path = os.path.join(enzyme_dir, "peptide.tsv")
-    if not os.path.exists(fa_path):
-        print(f"peptide.tsv not found in {enzyme_dir}")
-        continue
-    temp = pd.read_csv(fa_path, sep="\t")
-    # protein csv
-    fa_path = os.path.join(enzyme_dir, "protein.tsv")
-    protein_df = pd.read_csv(fa_path, sep="\t")
+for peptide_path in peptide_files:
+    enzyme_dir = os.path.dirname(peptide_path)
+    temp = pd.read_csv(peptide_path, sep="\t")
+    # protein csv from same enzyme directory
+    protein_path = os.path.join(enzyme_dir, "protein.tsv")
+    protein_df = pd.read_csv(protein_path, sep="\t")
     protein_df = protein_df[["Protein", "Length"]]
     protein_df.columns = ["Protein", "Protein Length"]
     temp = pd.merge(temp, protein_df, on="Protein", how="left")
@@ -103,21 +95,36 @@ for i in np.arange(0, len(enzyme_subdirs)):
 # prepare protein info lookup dictionary if provided
 if protein_info_path is not None:
     protein_info_df = pd.read_csv(protein_info_path, sep="\t")
-    protein_info_dict = dict(zip(list(protein_info_df["Protein"]), list(protein_info_df["ORF"])))
+    protein_info_dict = dict(
+        zip(list(protein_info_df["Protein"]), list(protein_info_df["ORF"]))
+    )
 # drop indistinguishable peptides
 unique_df = detected_df1[detected_df1["Mapped Proteins"].isna()]
 # unique_df = detected_df1
 # load in transcript structures
-col_names = ["chrom", "chromStart", "chromEnd", "name", 
-                  "score", "strand", "thickStart", "thickEnd",
-                  "itemRgb", "blockCount", "blockSizes", "blockStarts"]
+col_names = [
+    "chrom",
+    "chromStart",
+    "chromEnd",
+    "name",
+    "score",
+    "strand",
+    "thickStart",
+    "thickEnd",
+    "itemRgb",
+    "blockCount",
+    "blockSizes",
+    "blockStarts",
+]
 tx_bed = pd.read_csv(tx_bed_path, sep="\t", skiprows=1, names=col_names)
 # just in case but should be resolved now
 tx_bed = tx_bed.drop_duplicates()
 ## write our peptide bedfile
 # group on protein ids
 # drop duplicates for peptides which detected by multiple enzymes
-unique_df = unique_df.drop_duplicates(subset=["Peptide", "Protein Start", "Protein End", "Protein"])
+unique_df = unique_df.drop_duplicates(
+    subset=["Peptide", "Protein Start", "Protein End", "Protein"]
+)
 protein_groups = unique_df.groupby(by="Protein")
 # initiate dataframe
 data = []
@@ -148,7 +155,7 @@ for protein, group in protein_groups:
     # get block starts in chromosomal coordinates
     block_starts = bedrow["chromStart"] + np.array(block_starts)
     # get block ends in chromosomal coordinates
-    block_ends = block_starts+np.array(block_sizes)
+    block_ends = block_starts + np.array(block_sizes)
     # determine which block the ORF start is in
     interval_idx = np.where((block_starts <= ORF_start) & (ORF_start <= block_ends))[0]
     start_interval = interval_idx[0]
@@ -156,54 +163,95 @@ for protein, group in protein_groups:
     end_idx = np.where((block_starts <= ORF_end) & (ORF_end <= block_ends))[0]
     end_interval = end_idx[0]
     # now get size of ORF in cDNA
-    ORF_size = calc_orf_size(block_sizes, start_interval, end_interval,
-                             block_starts, block_ends, ORF_start, ORF_end)
+    ORF_size = calc_orf_size(
+        block_sizes,
+        start_interval,
+        end_interval,
+        block_starts,
+        block_ends,
+        ORF_start,
+        ORF_end,
+    )
     i = 1
     # determine peptide positions
     for _, row in group.iterrows():
         if row["Protein Start"] == row["Protein End"]:
-            print(f"skipping peptide {row['Peptide']} with same start/end; philosopher bug?")
+            print(
+                f"skipping peptide {row['Peptide']} with same start/end; philosopher bug?"
+            )
             continue
         elif bedrow["strand"] == "+":
             # convert to bed coordinates (0-start, half-open)
-            pepstart = 3*(row["Protein Start"]-1)
-            pepend = 3*row["Protein End"]
+            pepstart = 3 * (row["Protein Start"] - 1)
+            pepend = 3 * row["Protein End"]
             # determine peptide start position in genomic coordinates
-            genomic_pepstart = pep_ref_pos(start_interval, ORF_start, block_ends, 
-                                           pepstart, block_sizes, block_starts, ORF_end)
+            genomic_pepstart = pep_ref_pos(
+                start_interval,
+                ORF_start,
+                block_ends,
+                pepstart,
+                block_sizes,
+                block_starts,
+                ORF_end,
+            )
             # determine peptide end position in genomic coordinates
-            genomic_pepend = pep_ref_pos(start_interval, ORF_start, block_ends, 
-                                         pepend, block_sizes, block_starts, ORF_end)
+            genomic_pepend = pep_ref_pos(
+                start_interval,
+                ORF_start,
+                block_ends,
+                pepend,
+                block_sizes,
+                block_starts,
+                ORF_end,
+            )
         else:
             # negative strand
             # convert to bed coordinates (0-start, half-open)
-            pepstart = ORF_size - 3*row["Protein End"]
-            pepend = ORF_size - 3*(row["Protein Start"]-1)
+            pepstart = ORF_size - 3 * row["Protein End"]
+            pepend = ORF_size - 3 * (row["Protein Start"] - 1)
             # determine peptide start position in genomic coordinates
-            genomic_pepstart = pep_ref_pos(start_interval, ORF_start, block_ends, 
-                                           pepstart, block_sizes, block_starts, ORF_end)
+            genomic_pepstart = pep_ref_pos(
+                start_interval,
+                ORF_start,
+                block_ends,
+                pepstart,
+                block_sizes,
+                block_starts,
+                ORF_end,
+            )
             # determine peptide end position in genomic coordinates
-            genomic_pepend = pep_ref_pos(start_interval, ORF_start, block_ends, 
-                                         pepend, block_sizes, block_starts, ORF_end) 
+            genomic_pepend = pep_ref_pos(
+                start_interval,
+                ORF_start,
+                block_ends,
+                pepend,
+                block_sizes,
+                block_starts,
+                ORF_end,
+            )
         # check that coordinates make sense
-        assert ORF_end >= genomic_pepend, \
-            f"peptide ends after ORF {genomic_pepend} > {ORF_end} for {ORF_id}"
-        assert ORF_start <= genomic_pepstart, \
-            f"peptide starts before ORF {genomic_pepstart} < {ORF_start} for {ORF_id}"
-        data.append({
-            'chrom':bedrow['chrom'],
-            'chromStart':bedrow['chromStart'],
-            'chromEnd':bedrow['chromEnd'],
-            'name': f"{ORF_id}_peptide_{i}",
-            'score': bedrow['score'],
-            'strand': bedrow['strand'],
-            'thickStart': genomic_pepstart,
-            'thickEnd': genomic_pepend,
-            'itemRgb': '0',
-            'blockCount': bedrow["blockCount"],
-            'blockSizes': bedrow['blockSizes'],
-            'blockStarts': bedrow['blockStarts']
-        })
+        assert (
+            ORF_end >= genomic_pepend
+        ), f"peptide ends after ORF {genomic_pepend} > {ORF_end} for {ORF_id}"
+        assert (
+            ORF_start <= genomic_pepstart
+        ), f"peptide starts before ORF {genomic_pepstart} < {ORF_start} for {ORF_id}"
+        data.append(
+            {
+                "chrom": bedrow["chrom"],
+                "chromStart": bedrow["chromStart"],
+                "chromEnd": bedrow["chromEnd"],
+                "name": f"{ORF_id}_peptide_{i}",
+                "score": bedrow["score"],
+                "strand": bedrow["strand"],
+                "thickStart": genomic_pepstart,
+                "thickEnd": genomic_pepend,
+                "itemRgb": "0",
+                "blockCount": bedrow["blockCount"],
+                "blockSizes": bedrow["blockSizes"],
+                "blockStarts": bedrow["blockStarts"],
+            }
+        )
         i += 1
 test_pep_bed = pd.DataFrame(data)
 test_pep_bed = test_pep_bed.drop_duplicates()

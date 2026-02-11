@@ -14,7 +14,6 @@
         "outdir",
         "transcript_gtf",
         "transdecoder_gff3",
-        "transcripts_fasta",
         "sample_id",
         "fragpipe_dir"
       ],
@@ -32,10 +31,6 @@
         "transdecoder_gff3": {
           "type": "string",
           "description": "CDS regions from transdecoder in transcriptome coordinate space"
-        },
-        "transcripts_fasta": {
-          "type": "string",
-          "description": "cDNA fasta for transcriptome from gffread"
         },
         "sample_id": {
           "type": "string",
@@ -59,22 +54,18 @@
         },
         "bigwig": {
           "type": "string",
-          "default": "/data1/shahs3/isabl_data_lake/analyses/24/35/42435/results/minimap2/bigwig/SHAH_H003599_T01_01_TR01_R1.bedGraph",
           "description": "path to bedgraph file for igv_report option"
         },
         "protein_list": {
           "type": "string",
-          "default": "/data1/shahs3/users/preskaa/A673/data/APS010.1_PG3_v_Swissprot/peptidescope/noblastmatch_proteins.txt",
           "description": "path to a list of protein IDs for igv report"
         },
         "ref_genome": {
           "type": "string",
-          "default": "/data1/shahs3/reference/ref-sarcoma/GRCh38/v45/GRCh38.primary_assembly.genome.fa",
           "description": "reference genome for transcriptome"
         },
         "ref_genome_index": {
           "type": "string",
-          "default": "/data1/shahs3/reference/ref-sarcoma/GRCh38/v45/GRCh38.primary_assembly.genome.fa.fai",
           "description": "ref genome index"
         }
       }
@@ -87,5 +78,11 @@
     {
       "$ref": "#/$defs/igv_report_optional"
     }
-  ]
+  ],
+  "properties": {
+    "protein_info": {
+      "type": "string",
+      "description": "table matching proteins to transcript from PG3"
+    }
+  }
 }

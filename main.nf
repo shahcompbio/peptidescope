@@ -5,11 +5,18 @@
 include { BEDTOOLS_SLOP      } from './modules/local/bedtools/slop/main'
 include { BEDTOOLS_INTERSECT } from './modules/local/bedtools/intersect/main'
 include { IGVREPORT          } from './modules/local/igvreport/main'
+include { GFFREAD            } from './modules/nf-core/gffread/main'
 
 workflow {
    GTF2BED(params.transcript_gtf)
    GTF2GFF3(params.transcript_gtf)
-   GENOME_ALIGNED_GFF3(GTF2GFF3.out, params.transdecoder_gff3, params.transcripts_fasta)
+   // extract transcripts fasta file with gffread
+   GFFREAD(
+      [[id: "transcripts"], params.transcript_gtf],
+      params.ref_genome,
+   )
+   // GFFREAD.out.gffread_fasta.view()
+   GENOME_ALIGNED_GFF3(GTF2GFF3.out, params.transdecoder_gff3, GFFREAD.out.gffread_fasta)
    GFF3_TO_BED(GENOME_ALIGNED_GFF3.out)
    transcripts_bed = DUPS(GFF3_TO_BED.out)
    peptides_bed = PEPTIDE_BED(params.fragpipe_dir, transcripts_bed, params.protein_info)
@@ -71,7 +78,7 @@ process GENOME_ALIGNED_GFF3 {
    input:
    path transcripts_gff3
    path transdecoder_gff3
-   path transcripts_fasta
+   tuple val(meta), path(transcripts_fasta)
 
    output:
    path "transcripts.transdecoder.genome.gff3"
